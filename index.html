@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESM Equipment Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Lucide icons as inline SVG components
+        const Calendar = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+        );
+
+        const Settings = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+            </svg>
+        );
+
+        const FolderOpen = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                <path d="M2 19l1.5-6h17l-1.5 6"/>
+            </svg>
+        );
+
+        const User = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+        );
+
+        const MapPin = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+        );
+
+        const Clock = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+            </svg>
+        );
+
+        const X = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        );
+
+        const Plus = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+        );
+
+        const Save = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17,21 17,13 7,13 7,21"/>
+                <polyline points="7,3 7,8 15,8"/>
+            </svg>
+        );
+
+        const Trash2 = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <polyline points="3,6 5,6 21,6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+        );
+
+        const ArrowUpDown = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="m21 16-4 4-4-4"/>
+                <path d="M17 20V4"/>
+                <path d="m3 8 4-4 4 4"/>
+                <path d="M7 4v16"/>
+            </svg>
+        );
+
+        const ESMEquipmentTracker = () => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [showBookingModal, setShowBookingModal] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [showEquipmentDetails, setShowEquipmentDetails] = useState(false);
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [selectedLoan, setSelectedLoan] = useState(null);
+            const [loans, setLoans] = useState([]);
+            const [bookingForm, setBookingForm] = useState({
+                borrower: '',
+                site: '',
+                endDate: '',
+                equipment: {}
+            });
+            const [editForm, setEditForm] = useState({
+                borrower: '',
+                site: '',
+                endDate: '',
+                equipment: {}
+            });
+
+            // Equipment inventory with colors - now as state so it can be modified
+            const [equipmentTypes, setEquipmentTypes] = useState({
+                'AT600 Flow Meter': { total: 1, color: '#3B82F6', bgColor: '#EFF6FF' },
+                'PT900 Flow Meter': { total: 2, color: '#10B981', bgColor: '#ECFDF5' },
+                'Dent Logger': { total: 14, color: '#F59E0B', bgColor: '#FFFBEB' },
+                'Thermistor': { total: 6, color: '#8B5CF6', bgColor: '#F5F3FF' },
+                'Agilent Data Logger': { total: 2, color: '#EF4444', bgColor: '#FEF2F2' }
+            });
+
+            // Settings form state
+            const [settingsForm, setSettingsForm] = useState({});
+            const [newEquipment, setNewEquipment] = useState({
+                name: '',
+                total: 1,
+                color: '#3B82F6'
+            });
+
+            // Equipment details data
+            const [equipmentDetails, setEquipmentDetails] = useState([
+                { id: 1, name: 'Flow Meter FM001', type: 'AT600 Flow Meter', serialNumber: 'FM-AT600-001', calibrationDate: '2024-01-15', calibrationExpiry: '2025-01-15', remarks: 'Good condition' },
+                { id: 2, name: 'Flow Meter FM002', type: 'PT900 Flow Meter', serialNumber: 'FM-PT900-001', calibrationDate: '2024-02-10', calibrationExpiry: '2025-02-10', remarks: 'Recently serviced' },
+                { id: 3, name: 'Flow Meter FM003', type: 'PT900 Flow Meter', serialNumber: 'FM-PT900-002', calibrationDate: '2024-03-05', calibrationExpiry: '2025-03-05', remarks: 'New unit' },
+                { id: 4, name: 'Logger DL001', type: 'Dent Logger', serialNumber: 'DL-001', calibrationDate: '2024-01-20', calibrationExpiry: '2025-01-20', remarks: 'High accuracy model' },
+                { id: 5, name: 'Logger DL002', type: 'Dent Logger', serialNumber: 'DL-002', calibrationDate: '2024-01-20', calibrationExpiry: '2025-01-20', remarks: 'Standard model' }
+            ]);
+            
+            const [sortBy, setSortBy] = useState('name');
+            const [sortOrder, setSortOrder] = useState('asc');
+            const [newEquipmentDetail, setNewEquipmentDetail] = useState({
+                name: '',
+                type: '',
+                serialNumber: '',
+                calibrationDate: '',
+                calibrationExpiry: '',
+                remarks: ''
+            });
+
+            // Handle borrower name click for editing
+            const handleBorrowerClick = (e, loan) => {
+                e.stopPropagation();
+                setSelectedLoan(loan);
+                setEditForm({
+                    borrower: loan.borrower,
+                    site: loan.site,
+                    endDate: loan.endDate,
+                    equipment: {...loan.equipment}
+                });
+                setShowEditModal(true);
+            };
+
+            // Handle edit form submission
+            const handleEditSubmit = () => {
+                if (!editForm.borrower || !editForm.site || !editForm.endDate) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                const updatedLoans = loans.map(loan => 
+                    loan.id === selectedLoan.id 
+                        ? { ...loan, ...editForm }
+                        : loan
+                );
+                
+                setLoans(updatedLoans);
+                setShowEditModal(false);
+                setSelectedLoan(null);
+            };
+
+            // Equipment details functions
+            const getSortedEquipmentDetails = () => {
+                return [...equipmentDetails].sort((a, b) => {
+                    let aValue = a[sortBy];
+                    let bValue = b[sortBy];
+                    
+                    if (sortBy === 'calibrationDate' || sortBy === 'calibrationExpiry') {
+                        aValue = new Date(aValue);
+                        bValue = new Date(bValue);
+                    }
+                    
+                    if (sortOrder === 'asc') {
+                        return aValue > bValue ? 1 : -1;
+                    } else {
+                        return aValue < bValue ? 1 : -1;
+                    }
+                });
+            };
+
+            const handleSort = (field) => {
+                if (sortBy === field) {
+                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                } else {
+                    setSortBy(field);
+                    setSortOrder('asc');
+                }
+            };
+
+            const handleAddEquipmentDetail = () => {
+                if (!newEquipmentDetail.name || !newEquipmentDetail.type || !newEquipmentDetail.serialNumber) {
+                    alert('Please fill in required fields (Name, Type, Serial Number)');
+                    return;
+                }
+
+                const newDetail = {
+                    id: Date.now(),
+                    ...newEquipmentDetail
+                };
+
+                setEquipmentDetails([...equipmentDetails, newDetail]);
+                setNewEquipmentDetail({
+                    name: '',
+                    type: '',
+                    serialNumber: '',
+                    calibrationDate: '',
+                    calibrationExpiry: '',
+                    remarks: ''
+                });
+            };
+
+            const handleDeleteEquipmentDetail = (id) => {
+                setEquipmentDetails(equipmentDetails.filter(item => item.id !== id));
+            };
+
+            // Initialize settings form when modal opens
+            const openSettingsModal = () => {
+                setSettingsForm({...equipmentTypes});
+                setShowSettingsModal(true);
+            };
+
+            // Handle settings save
+            const handleSettingsSave = () => {
+                setEquipmentTypes({...settingsForm});
+                setShowSettingsModal(false);
+            };
+
+            // Handle equipment deletion
+            const handleDeleteEquipment = (equipmentName) => {
+                const newSettings = {...settingsForm};
+                delete newSettings[equipmentName];
+                setSettingsForm(newSettings);
+            };
+
+            // Handle adding new equipment
+            const handleAddEquipment = () => {
+                if (!newEquipment.name.trim()) {
+                    alert('Please enter equipment name');
+                    return;
+                }
+                
+                if (settingsForm[newEquipment.name]) {
+                    alert('Equipment with this name already exists');
+                    return;
+                }
+
+                setSettingsForm({
+                    ...settingsForm,
+                    [newEquipment.name]: {
+                        total: parseInt(newEquipment.total),
+                        color: newEquipment.color,
+                        bgColor: newEquipment.color + '20'
+                    }
+                });
+
+                setNewEquipment({
+                    name: '',
+                    total: 1,
+                    color: '#3B82F6'
+                });
+            };
+
+            // Navigate months
+            const navigateMonth = (direction) => {
+                const newDate = new Date(currentDate);
+                newDate.setMonth(currentDate.getMonth() + direction);
+                setCurrentDate(newDate);
+            };
+
+            // Get days in month
+            const getDaysInMonth = () => {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                const startingDayOfWeek = firstDay.getDay();
+
+                const days = [];
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                    days.push(null);
+                }
+                for (let day = 1; day <= daysInMonth; day++) {
+                    days.push(day);
+                }
+                return days;
+            };
+
+            // Check equipment availability for a date
+            const getAvailableEquipment = (date) => {
+                const available = {};
+                Object.keys(equipmentTypes).forEach(type => {
+                    const loansForDate = loans.filter(loan => {
+                        const loanStart = new Date(loan.startDate);
+                        const loanEnd = new Date(loan.endDate);
+                        return date >= loanStart && date <= loanEnd;
+                    });
+                    
+                    const usedQuantity = loansForDate.reduce((sum, loan) => 
+                        sum + (loan.equipment[type] || 0), 0);
+                    
+                    available[type] = equipmentTypes[type].total - usedQuantity;
+                });
+                return available;
+            };
+
+            // Get loans for a specific date
+            const getLoansForDate = (date) => {
+                return loans.filter(loan => {
+                    const loanStart = new Date(loan.startDate);
+                    const loanEnd = new Date(loan.endDate);
+                    return date >= loanStart && date <= loanEnd;
+                });
+            };
+
+            // Handle date click
+            const handleDateClick = (day) => {
+                if (!day) return;
+                const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                setSelectedDate(clickedDate);
+                setShowBookingModal(true);
+                setBookingForm({
+                    borrower: '',
+                    site: '',
+                    endDate: '',
+                    equipment: {}
+                });
+            };
+
+            // Handle booking submission
+            const handleBookingSubmit = () => {
+                if (!bookingForm.borrower || !bookingForm.site || !bookingForm.endDate) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                const hasEquipment = Object.values(bookingForm.equipment).some(qty => qty > 0);
+                if (!hasEquipment) {
+                    alert('Please select at least one piece of equipment');
+                    return;
+                }
+
+                const newLoan = {
+                    id: Date.now(),
+                    startDate: selectedDate.toISOString().split('T')[0],
+                    endDate: bookingForm.endDate,
+                    borrower: bookingForm.borrower,
+                    site: bookingForm.site,
+                    equipment: { ...bookingForm.equipment }
+                };
+
+                setLoans([...loans, newLoan]);
+                setShowBookingModal(false);
+            };
+
+            const formatDate = (date) => {
+                return date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            };
+
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            return (
+                <div className="min-h-screen bg-gray-50 p-4">
+                    <div className="max-w-7xl mx-auto">
+                        {/* Header */}
+                        <div className="mb-8 flex justify-between items-start">
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                    <Calendar className="w-8 h-8 text-blue-600" />
+                                    ESM Equipment Tracker
+                                </h1>
+                                <p className="text-gray-600">Track and manage equipment loans across your team</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowEquipmentDetails(true)}
+                                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    <FolderOpen className="w-5 h-5" />
+                                    Equipment Details
+                                </button>
+                                <button
+                                    onClick={openSettingsModal}
+                                    className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    <Settings className="w-5 h-5" />
+                                    Settings
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Equipment Legend */}
+                        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                            <h3 className="text-lg font-semibold mb-4">Equipment Types</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                {Object.entries(equipmentTypes).map(([name, info]) => (
+                                    <div key={name} className="flex items-center gap-2">
+                                        <div 
+                                            className="w-4 h-4 rounded"
+                                            style={{ backgroundColor: info.color }}
+                                        ></div>
+                                        <span className="text-sm font-medium">{name}</span>
+                                        <span className="text-xs text-gray-500">({info.total})</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Calendar */}
+                        <div className="bg-white rounded-lg shadow-sm">
+                            {/* Calendar Header */}
+                            <div className="flex items-center justify-between p-6 border-b">
+                                <button
+                                    onClick={() => navigateMonth(-1)}
+                                    className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    ← Previous
+                                </button>
+                                <h2 className="text-xl font-semibold">
+                                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                                </h2>
+                                <button
+                                    onClick={() => navigateMonth(1)}
+                                    className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                    Next →
+                                </button>
+                            </div>
+
+                            {/* Day Headers */}
+                            <div className="grid grid-cols-7 border-b">
+                                {dayNames.map(day => (
+                                    <div key={day} className="p-4 text-center font-medium text-gray-600 border-r last:border-r-0">
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Calendar Grid */}
+                            <div className="grid grid-cols-7">
+                                {getDaysInMonth().map((day, index) => {
+                                    if (!day) {
+                                        return <div key={index} className="h-24 border-r border-b last:border-r-0"></div>;
+                                    }
+
+                                    const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                                    const loansForDay = getLoansForDate(cellDate);
+                                    
+                                    return (
+                                        <div
+                                            key={day}
+                                            className="h-24 border-r border-b last:border-r-0 p-1 cursor-pointer hover:bg-gray-50 transition-colors"
+                                            onClick={() => handleDateClick(day)}
+                                        >
+                                            <div className="text-sm font-medium mb-1">{day}</div>
+                                            <div className="space-y-1">
+                                                {loansForDay.slice(0, 2).map(loan => (
+                                                    <div key={loan.id} className="text-xs">
+                                                        <div 
+                                                            className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer truncate mb-1 underline"
+                                                            onClick={(e) => handleBorrowerClick(e, loan)}
+                                                            title="Click to edit loan details"
+                                                        >
+                                                            {loan.borrower} / {loan.site}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {Object.entries(loan.equipment).map(([type, qty]) => {
+                                                                if (qty > 0) {
+                                                                    return (
+                                                                        <div
+                                                                            key={type}
+                                                                            className="px-1 py-0.5 rounded text-white text-xs"
+                                                                            style={{ backgroundColor: equipmentTypes[type]?.color || '#6B7280' }}
+                                                                            title={`${type}: ${qty}`}
+                                                                        >
+                                                                            {qty}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {loansForDay.length > 2 && (
+                                                    <div className="text-xs text-gray-500">+{loansForDay.length - 2} more</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Booking Modal */}
+                        {showBookingModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
+                                    <div className="p-6 border-b">
+                                        <h3 className="text-lg font-semibold">Book Equipment</h3>
+                                        <p className="text-gray-600">{selectedDate && formatDate(selectedDate)}</p>
+                                    </div>
+
+                                    <div className="p-6 space-y-4">
+                                        {/* Borrower Name */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <User className="w-4 h-4 inline mr-1" />
+                                                Borrower Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={bookingForm.borrower}
+                                                onChange={(e) => setBookingForm({...bookingForm, borrower: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Enter your name"
+                                            />
+                                        </div>
+
+                                        {/* Site Location */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <MapPin className="w-4 h-4 inline mr-1" />
+                                                Site Location *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={bookingForm.site}
+                                                onChange={(e) => setBookingForm({...bookingForm, site: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="Enter site location"
+                                            />
+                                        </div>
+
+                                        {/* End Date */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <Clock className="w-4 h-4 inline mr-1" />
+                                                Return Date *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={bookingForm.endDate}
+                                                onChange={(e) => setBookingForm({...bookingForm, endDate: e.target.value})}
+                                                min={selectedDate?.toISOString().split('T')[0]}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        {/* Equipment Selection */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Select Equipment
+                                            </label>
+                                            <div className="space-y-3">
+                                                {Object.entries(equipmentTypes).map(([type, info]) => {
+                                                    const available = selectedDate ? getAvailableEquipment(selectedDate)[type] : info.total;
+                                                    return (
+                                                        <div key={type} className="flex items-center justify-between p-3 border rounded-lg">
+                                                            <div>
+                                                                <div className="font-medium">{type}</div>
+                                                                <div className="text-sm text-gray-500">Available: {available}</div>
+                                                            </div>
+                                                            <select
+                                                                value={bookingForm.equipment[type] || 0}
+                                                                onChange={(e) => setBookingForm({
+                                                                    ...bookingForm,
+                                                                    equipment: {
+                                                                        ...bookingForm.equipment,
+                                                                        [type]: parseInt(e.target.value)
+                                                                    }
+                                                                })}
+                                                                className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                disabled={available === 0}
+                                                            >
+                                                                {Array.from({length: available + 1}, (_, i) => (
+                                                                    <option key={i} value={i}>{i}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 p-6 border-t">
+                                        <button
+                                            onClick={() => setShowBookingModal(false)}
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleBookingSubmit}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            Book Equipment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Settings Modal */}
+                        {showSettingsModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto">
+                                    <div className="p-6 border-b flex justify-between items-center">
+                                        <h3 className="text-lg font-semibold">Equipment Settings</h3>
+                                        <button
+                                            onClick={() => setShowSettingsModal(false)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="p-6 space-y-6">
+                                        {/* Existing Equipment */}
+                                        <div>
+                                            <h4 className="text-md font-semibold mb-4">Manage Existing Equipment</h4>
+                                            <div className="space-y-4">
+                                                {Object.entries(settingsForm).map(([name, info]) => (
+                                                    <div key={name} className="flex items-center gap-4 p-4 border rounded-lg">
+                                                        <div className="flex-1">
+                                                            <input
+                                                                type="text"
+                                                                value={name}
+                                                                onChange={(e) => {
+                                                                    const newName = e.target.value;
+                                                                    const newSettings = {...settingsForm};
+                                                                    if (newName !== name) {
+                                                                        newSettings[newName] = newSettings[name];
+                                                                        delete newSettings[name];
+                                                                        setSettingsForm(newSettings);
+                                                                    }
+                                                                }}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                placeholder="Equipment name"
+                                                            />
+                                                        </div>
+                                                        <div className="w-24">
+                                                            <label className="text-sm text-gray-600">Quantity</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={info.total}
+                                                                onChange={(e) => setSettingsForm({
+                                                                    ...settingsForm,
+                                                                    [name]: {...info, total: parseInt(e.target.value) || 1}
+                                                                })}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            />
+                                                        </div>
+                                                        <div className="w-20">
+                                                            <label className="text-sm text-gray-600">Color</label>
+                                                            <input
+                                                                type="color"
+                                                                value={info.color}
+                                                                onChange={(e) => setSettingsForm({
+                                                                    ...settingsForm,
+                                                                    [name]: {...info, color: e.target.value, bgColor: e.target.value + '20'}
+                                                                })}
+                                                                className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDeleteEquipment(name)}
+                                                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Delete equipment"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Add New Equipment */}
+                                        <div className="border-t pt-6">
+                                            <h4 className="text-md font-semibold mb-4">Add New Equipment</h4>
+                                            <div className="flex items-end gap-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newEquipment.name}
+                                                        onChange={(e) => setNewEquipment({...newEquipment, name: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Enter equipment name"
+                                                    />
+                                                </div>
+                                                <div className="w-24">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={newEquipment.total}
+                                                        onChange={(e) => setNewEquipment({...newEquipment, total: parseInt(e.target.value) || 1})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                                <div className="w-20">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                                                    <input
+                                                        type="color"
+                                                        value={newEquipment.color}
+                                                        onChange={(e) => setNewEquipment({...newEquipment, color: e.target.value})}
+                                                        className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={handleAddEquipment}
+                                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 p-6 border-t">
+                                        <button
+                                            onClick={() => setShowSettingsModal(false)}
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSettingsSave}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <Save className="w-4 h-4" />
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Equipment Details Modal */}
+                        {showEquipmentDetails && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-lg max-w-6xl w-full max-h-96 overflow-y-auto">
+                                    <div className="p-6 border-b flex justify-between items-center">
+                                        <h3 className="text-lg font-semibold">Equipment Details</h3>
+                                        <button
+                                            onClick={() => setShowEquipmentDetails(false)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="p-6">
+                                        {/* Sort Controls */}
+                                        <div className="mb-4 flex gap-2 flex-wrap">
+                                            <span className="text-sm font-medium text-gray-700 flex items-center">Sort by:</span>
+                                            {[
+                                                { field: 'name', label: 'Name' },
+                                                { field: 'type', label: 'Type' },
+                                                { field: 'serialNumber', label: 'Serial Number' },
+                                                { field: 'calibrationDate', label: 'Calibration Date' },
+                                                { field: 'calibrationExpiry', label: 'Expiry Date' }
+                                            ].map(({ field, label }) => (
+                                                <button
+                                                    key={field}
+                                                    onClick={() => handleSort(field)}
+                                                    className={`px-3 py-1 text-sm rounded-lg border transition-colors flex items-center gap-1 ${
+                                                        sortBy === field 
+                                                            ? 'bg-blue-100 border-blue-300 text-blue-700' 
+                                                            : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    {label}
+                                                    {sortBy === field && (
+                                                        <ArrowUpDown className={`w-3 h-3 ${sortOrder === 'desc' ? 'transform rotate-180' : ''}`} />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Equipment Table */}
+                                        <div className="overflow-x-auto mb-6">
+                                            <table className="w-full border-collapse border border-gray-300">
+                                                <thead>
+                                                    <tr className="bg-gray-50">
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Equipment Name</th>
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Type</th>
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Serial Number</th>
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Calibration Date</th>
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Calibration Expiry</th>
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Remarks</th>
+                                                        <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {getSortedEquipmentDetails().map(equipment => (
+                                                        <tr key={equipment.id} className="hover:bg-gray-50">
+                                                            <td className="border border-gray-300 px-4 py-2">{equipment.name}</td>
+                                                            <td className="border border-gray-300 px-4 py-2">
+                                                                <span 
+                                                                    className="px-2 py-1 rounded text-xs text-white"
+                                                                    style={{ backgroundColor: equipmentTypes[equipment.type]?.color || '#6B7280' }}
+                                                                >
+                                                                    {equipment.type}
+                                                                </span>
+                                                            </td>
+                                                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{equipment.serialNumber}</td>
+                                                            <td className="border border-gray-300 px-4 py-2">{equipment.calibrationDate || 'N/A'}</td>
+                                                            <td className="border border-gray-300 px-4 py-2">
+                                                                <span className={`${
+                                                                    equipment.calibrationExpiry && new Date(equipment.calibrationExpiry) < new Date() 
+                                                                        ? 'text-red-600 font-semibold' 
+                                                                        : equipment.calibrationExpiry && new Date(equipment.calibrationExpiry) < new Date(Date.now() + 30*24*60*60*1000)
+                                                                        ? 'text-orange-600 font-semibold'
+                                                                        : 'text-gray-900'
+                                                                }`}>
+                                                                    {equipment.calibrationExpiry || 'N/A'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="border border-gray-300 px-4 py-2 max-w-xs truncate" title={equipment.remarks}>
+                                                                {equipment.remarks}
+                                                            </td>
+                                                            <td className="border border-gray-300 px-4 py-2">
+                                                                <button
+                                                                    onClick={() => handleDeleteEquipmentDetail(equipment.id)}
+                                                                    className="text-red-500 hover:text-red-700 p-1"
+                                                                    title="Delete equipment"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Add New Equipment Detail */}
+                                        <div className="border-t pt-6">
+                                            <h4 className="text-md font-semibold mb-4">Add New Equipment Detail</h4>
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Name *</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newEquipmentDetail.name}
+                                                        onChange={(e) => setNewEquipmentDetail({...newEquipmentDetail, name: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Enter equipment name"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                                                    <select
+                                                        value={newEquipmentDetail.type}
+                                                        onChange={(e) => setNewEquipmentDetail({...newEquipmentDetail, type: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    >
+                                                        <option value="">Select type</option>
+                                                        {Object.keys(equipmentTypes).map(type => (
+                                                            <option key={type} value={type}>{type}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number *</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newEquipmentDetail.serialNumber}
+                                                        onChange={(e) => setNewEquipmentDetail({...newEquipmentDetail, serialNumber: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Enter serial number"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Calibration Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={newEquipmentDetail.calibrationDate}
+                                                        onChange={(e) => setNewEquipmentDetail({...newEquipmentDetail, calibrationDate: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Calibration Expiry</label>
+                                                    <input
+                                                        type="date"
+                                                        value={newEquipmentDetail.calibrationExpiry}
+                                                        onChange={(e) => setNewEquipmentDetail({...newEquipmentDetail, calibrationExpiry: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newEquipmentDetail.remarks}
+                                                        onChange={(e) => setNewEquipmentDetail({...newEquipmentDetail, remarks: e.target.value})}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Enter remarks or comments"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={handleAddEquipmentDetail}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                                Add Equipment Detail
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Edit Loan Modal */}
+                        {showEditModal && selectedLoan && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
+                                    <div className="p-6 border-b">
+                                        <h3 className="text-lg font-semibold">Edit Loan Details</h3>
+                                        <p className="text-gray-600">Editing loan for {selectedLoan.borrower}</p>
+                                    </div>
+
+                                    <div className="p-6 space-y-4">
+                                        {/* Borrower Name */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <User className="w-4 h-4 inline mr-1" />
+                                                Borrower Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editForm.borrower}
+                                                onChange={(e) => setEditForm({...editForm, borrower: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        {/* Site Location */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <MapPin className="w-4 h-4 inline mr-1" />
+                                                Site Location *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editForm.site}
+                                                onChange={(e) => setEditForm({...editForm, site: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        {/* End Date */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                <Clock className="w-4 h-4 inline mr-1" />
+                                                Return Date *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={editForm.endDate}
+                                                onChange={(e) => setEditForm({...editForm, endDate: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        {/* Equipment Selection */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Update Equipment Quantities
+                                            </label>
+                                            <div className="space-y-3">
+                                                {Object.entries(equipmentTypes).map(([type, info]) => {
+                                                    // For editing, we need to calculate available including current loan
+                                                    const currentlyBorrowed = selectedLoan.equipment[type] || 0;
+                                                    const otherLoansOnDate = loans.filter(loan => 
+                                                        loan.id !== selectedLoan.id &&
+                                                        new Date(selectedLoan.startDate) >= new Date(loan.startDate) &&
+                                                        new Date(selectedLoan.startDate) <= new Date(loan.endDate)
+                                                    ).reduce((sum, loan) => sum + (loan.equipment[type] || 0), 0);
+                                                    
+                                                    const available = info.total - otherLoansOnDate;
+                                                    
+                                                    return (
+                                                        <div key={type} className="flex items-center justify-between p-3 border rounded-lg">
+                                                            <div>
+                                                                <div className="font-medium">{type}</div>
+                                                                <div className="text-sm text-gray-500">Available: {available}</div>
+                                                            </div>
+                                                            <select
+                                                                value={editForm.equipment[type] || 0}
+                                                                onChange={(e) => setEditForm({
+                                                                    ...editForm,
+                                                                    equipment: {
+                                                                        ...editForm.equipment,
+                                                                        [type]: parseInt(e.target.value)
+                                                                    }
+                                                                })}
+                                                                className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            >
+                                                                {Array.from({length: available + 1}, (_, i) => (
+                                                                    <option key={i} value={i}>{i}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 p-6 border-t">
+                                        <button
+                                            onClick={() => setShowEditModal(false)}
+                                            className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleEditSubmit}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<ESMEquipmentTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>

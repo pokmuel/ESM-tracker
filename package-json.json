@@ -1,0 +1,36 @@
+{
+  "name": "esm-equipment-tracker",
+  "version": "1.0.0",
+  "description": "A comprehensive web-based equipment loan tracking system for teams",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx http-server -p 8000"
+  },
+  "keywords": [
+    "equipment",
+    "tracking",
+    "loan",
+    "inventory",
+    "calendar",
+    "management",
+    "react"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/esm-equipment-tracker.git"
+  },
+  "homepage": "https://yourusername.github.io/esm-equipment-tracker",
+  "bugs": {
+    "url": "https://github.com/yourusername/esm-equipment-tracker/issues"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not op_mini all"
+  ]
+}
