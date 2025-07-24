@@ -20,6 +20,14 @@
     </style>
 </head>
 <body>
+    <script>
+  const password = "Savillsesm";
+  const input = prompt("Enter password to access this app:");
+  if (input !== password) {
+    document.body.innerHTML = "<h2>Access Denied</h2>";
+    throw new Error("Unauthorized");
+  }
+</script>
     <div id="root"></div>
 
     <script type="text/babel">
